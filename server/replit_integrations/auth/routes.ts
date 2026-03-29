@@ -88,10 +88,18 @@ export function registerAuthRoutes(app: Express): void {
       }
 
       const storageBackend = getStorageBackend();
-      const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
+      let fileExtension = req.file.originalname.split('.').pop()?.toLowerCase() || 'jpg';
+      if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileExtension)) {
+        fileExtension = 'jpg';
+      }
       const imageKey = `profiles/${req.user.id}/${nanoid()}.${fileExtension}`;
       
-      await storageBackend.uploadBuffer(req.file.buffer, imageKey, req.file.mimetype);
+      let safeMimeType = req.file.mimetype;
+      if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(safeMimeType)) {
+        safeMimeType = 'image/jpeg';
+      }
+
+      await storageBackend.uploadBuffer(req.file.buffer, imageKey, safeMimeType);
       
       const user = await authStorage.updateProfileImage(req.user.id, imageKey);
       

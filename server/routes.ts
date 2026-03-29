@@ -40,6 +40,9 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Helper to join paths without double slashes
 function joinStoragePath(prefix: string, key: string): string {
+  if (key.includes("..")) {
+    throw new Error("Invalid path");
+  }
   if (!prefix || prefix === "/" || prefix === "") {
     return key;
   }
@@ -1506,6 +1509,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "documentId required" });
       }
 
+      if (documentId.includes("/") || documentId.includes("\\") || documentId.includes("..")) {
+        return res.status(400).json({ error: "Invalid documentId" });
+      }
+
       const document = await storage.getDocument(documentId);
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
@@ -1552,6 +1559,10 @@ export async function registerRoutes(
 
       if (!documentId) {
         return res.status(400).json({ error: "documentId required" });
+      }
+
+      if (documentId.includes("/") || documentId.includes("\\") || documentId.includes("..")) {
+        return res.status(400).json({ error: "Invalid documentId" });
       }
 
       const document = await storage.getDocument(documentId);
@@ -3387,6 +3398,10 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Template not found" });
       }
 
+      if (template.isDefault) {
+        return res.status(403).json({ error: "Cannot edit default templates" });
+      }
+
       // Only owner or team member can edit (not default templates)
       const hasAccess = await canAccessUserDocuments(userId, template.userId);
       if (!hasAccess) {
@@ -3539,6 +3554,10 @@ export async function registerRoutes(
       const template = await storage.getTemplate(templateId);
       if (!template) {
         return res.status(404).json({ error: "Template not found" });
+      }
+
+      if (template.isDefault) {
+        return res.status(403).json({ error: "Cannot edit default templates" });
       }
 
       // Only owner or team member can edit
